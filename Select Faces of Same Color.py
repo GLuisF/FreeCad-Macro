@@ -1,24 +1,9 @@
 def SelectFacesByColor(sel = None):
-    "SelectFacesByColor()"
-    if sel == None: sel = Gui.Selection.getSelectionEx()
-    if type(sel) == list:
-        if len(sel) == 0:
-            print('No object selected')
-            return
-        elif len(sel) >= 1:
-            sel = sel[0]
-    # faces can be selected with mouse
     obj = sel.Object
-    # got all faces indexes
     faceIdx = []
-    # get old colors of object
     objColors = obj.ViewObject.DiffuseColor
     item = sel.SubElementNames[0]
-    if item.startswith('Face'): 
-        faceIdx = int(item[4:])-1
-    else:
-        print('No face selected')
-        return
+    faceIdx = int(item[4:])-1
     n = 0
     for idx in range(len(obj.Shape.Faces)):
         if len(objColors) == 1:
@@ -29,6 +14,42 @@ def SelectFacesByColor(sel = None):
             face = "Face%d" % (idx+1)
             Gui.Selection.addSelection(obj, face)
             n += 1
-            
     print('%d face%s selected' % (n,'s' if n>1 else ''))
 
+def SelectionType():
+    sel = Gui.Selection.getSelectionEx()
+    if len(sel) == 0:
+        print('Nada foi selecionado:', sel)
+        return
+    elif len(sel) > 1:
+        print('Mais de um objeto selecionado:', sel)
+        return
+    else:
+        sel = sel[0]
+        obj = sel.Object
+        tipo = obj.TypeId
+        if 'Part' not in tipo:
+            print('Objeto não é Part:', tipo)
+            return
+        else:
+            if not sel.HasSubObjects:
+                print('Part inteira foi selecionada:', obj.TypeId)
+                return
+            else:
+                item = sel.SubElementNames
+                if len(item) > 1:
+                    print('Mais de 1 item foi selecionado:', item)
+                    return
+                else:
+                    sub_obj = sel.SubObjects[0]
+                    tipo = sub_obj.ShapeType
+                    if tipo != 'Face':
+                        print('Objeto não é Face:', tipo)
+                        return
+                    else:
+                        print('Face selecionada')
+                        return sel
+
+sel = SelectionType()
+if sel != None:
+    SelectFacesByColor(sel)
