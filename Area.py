@@ -1,4 +1,4 @@
-def MedirComprimento():
+def MedirArea():
     area = 0.0
     for sel in Gui.Selection.getSelectionEx():
         obj = sel.Object
@@ -13,6 +13,6 @@ def MedirComprimento():
                 for item in sel.SubObjects:
                     if item.ShapeType == 'Face':
                         area += item.Area
-    print('area total: %f ' % area)
+    print('area total: %fmm²' % area)
 
-MedirComprimento()
+MedirArea()

@@ -13,6 +13,6 @@ def MedirComprimento():
                 for item in sel.SubObjects:
                     if item.ShapeType in ['Edge','Face']:
                         comprimento += item.Length
-    print('comprimento total: %f ' % comprimento)
+    print('comprimento total: %fmm' % comprimento)
 
 MedirComprimento()
