@@ -1,0 +1,23 @@
+obj = FreeCADGui.Selection.getSelection()
+
+bom = App.activeDocument().addObject('Spreadsheet::Sheet','BOM')
+bom.set("A1", 'Função')
+bom.set("B1", 'Comprimento')
+bom.set("C1", 'Largura')
+bom.set("D1", 'Espessura')
+bom.set("E1", 'Material')
+
+cell = 1
+for x in obj:
+    if x.TypeId == 'Part::Box':
+        cell = cell + 1
+        medidas = [x.Length, x.Width, x.Height]
+        medidas.sort()
+        bom.set("A" + str(cell), x.Label)
+        bom.set("B" + str(cell), str(medidas[2]))
+        bom.set("C" + str(cell), str(medidas[1]))
+        bom.set("D" + str(cell), str(medidas[0]))
+        bom.set("E" + str(cell), x.Label2)
+
+App.ActiveDocument.recompute()
+#
