@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 """
 ***************************************************************************
-*   Copyright (c) 2022 <mario52>                                          *
+*   Copyright (c) 2022 2023 <mario52>                                     *
 *                                                                         *
 *   This file is a supplement to the FreeCAD CAx development system.      *
 *                                                                         *
@@ -31,13 +30,13 @@
 """
 #
 #2022/02/16, 2022/03/14 ajout preselection size toolbar, 29/03/2022 ajout somme tous les edges
-#
+#2023/09/06 et radius Surface
 __title__   = "FCInfo_ToolBar" # on ToolBar
 __author__  = "Mario52"
 __url__     = "http://www.freecadweb.org/index-fr.html"
 __Wiki__    = "https://wiki.freecadweb.org/Macro_FCInfo_ToolBar"
-__version__ = "00.03"
-__date__    = "2022/03/29"     #YYYY/MM/DD
+__version__ = "00.05b"
+__date__    = "2023/09/06"     #YYYY/MM/DD
 
 import FreeCAD, FreeCADGui
 App = FreeCAD
@@ -72,9 +71,11 @@ global toolbar1         ; toolbar1         = QtWidgets.QToolBar()  # tool bar
 global lineEdit_ToolBar ; lineEdit_ToolBar = QtWidgets.QLineEdit() # lineEdit
 global fontGlobal_08    ; fontGlobal_08    = QtGui.QFont()
 ##
-global objectName       ; objectName     =  ""
-global SubElementName   ; SubElementName =  ""
+global objectName       ; objectName     = ""
+global SubElementName   ; SubElementName = ""
 global position
+global pos2D              ; pos2D            = ""
+
 global switch_User_NotInfoOnBeginning
 global seT_User_DecimalValue
 global seT_User_TextHeigthValue
@@ -88,6 +89,7 @@ global switch_User_Display_SubElementName
 global switch_User_Display_ShapeType
 global switch_User_Display_TypeId
 global switch_User_Display_RadiusObject
+global switch_User_Display_RadiusSurface
 global switch_User_Display_BsplineObject
 global switch_User_Display_CentreObject
 global switch_User_Display_CentreBoundBoxObject
@@ -97,6 +99,8 @@ global switch_User_Display_AreaObject
 global switch_User_Display_AreaSubObject
 global switch_User_Display_Position
 global switch_User_Display_VolumeObject
+global switch_User_Display_Position_2D_CAD
+global switch_User_Display_Position_2D_BMP
 global seT_User_UnitSymbolSquare
 global seT_User_UnitSymbolCube
 global seT_User_UnitSymbolMicro
@@ -173,6 +177,9 @@ FreeCAD_Paramter.SetBool("switch_User_Display_TypeId", switch_User_Display_TypeI
 switch_User_Display_RadiusObject = FreeCAD_Paramter.GetBool("switch_User_Display_RadiusObject")# switch yes / no Radius
 FreeCAD_Paramter.SetBool("switch_User_Display_RadiusObject", switch_User_Display_RadiusObject) # switch yes / no Radius
 ##
+switch_User_Display_RadiusSurface = FreeCAD_Paramter.GetBool("switch_User_Display_RadiusSurface")# switch yes / no Radius
+FreeCAD_Paramter.SetBool("switch_User_Display_RadiusSurface", switch_User_Display_RadiusSurface) # switch yes / no Radius
+##
 switch_User_Display_LengthObject = FreeCAD_Paramter.GetBool("switch_User_Display_LengthObject")# switch yes / no Length
 FreeCAD_Paramter.SetBool("switch_User_Display_LengthObject", switch_User_Display_LengthObject) # switch yes / no Length
 ##
@@ -209,22 +216,28 @@ FreeCAD_Paramter.SetBool("switch_User_Display_CentreBoundBoxObject", switch_User
 switch_User_Display_Position = FreeCAD_Paramter.GetBool("switch_User_Display_Position")# switch yes / no Position
 FreeCAD_Paramter.SetBool("switch_User_Display_Position", switch_User_Display_Position) # switch yes / no Position
 ##
+switch_User_Display_Position_2D_CAD = FreeCAD_Paramter.GetBool("switch_User_Display_Position_2D_CAD")# switch yes / no Position 2D CAD
+FreeCAD_Paramter.SetBool("switch_User_Display_Position_2D_CAD", switch_User_Display_Position_2D_CAD) # switch yes / no Position 2D CAD
+##
+switch_User_Display_Position_2D_BMP = FreeCAD_Paramter.GetBool("switch_User_Display_Position_2D_BMP")# switch yes / no Position 2D BMP Reverse Y
+FreeCAD_Paramter.SetBool("switch_User_Display_Position_2D_BMP", switch_User_Display_Position_2D_BMP) # switch yes / no Position 2D BMP Reverse Y
+##
 switch_User_NotInfoOnBeginning = FreeCAD_Paramter.GetBool("switch_User_NotInfoOnBeginning")# switch yes / no Info
 FreeCAD_Paramter.SetBool("switch_User_NotInfoOnBeginning", switch_User_NotInfoOnBeginning) # switch yes / no Info
 ##
-seT_User_UnitSymbolSquare = FreeCAD.ParamGet(u"User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__).GetString(u"seT_User_UnitSymbolSquare")
+seT_User_UnitSymbolSquare = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__).GetString("seT_User_UnitSymbolSquare")
 if seT_User_UnitSymbolSquare == "":
     seT_User_UnitSymbolSquare = "2"
 FreeCAD_Paramter.SetString("seT_User_UnitSymbolSquare", seT_User_UnitSymbolSquare) # 
 ##
-seT_User_UnitSymbolCube = FreeCAD.ParamGet(u"User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__).GetString(u"seT_User_UnitSymbolCube")
+seT_User_UnitSymbolCube = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__).GetString("seT_User_UnitSymbolCube")
 if seT_User_UnitSymbolCube == "":
     seT_User_UnitSymbolCube = "3"
 FreeCAD_Paramter.SetString("seT_User_UnitSymbolCube", seT_User_UnitSymbolCube) # 
 ##
-seT_User_UnitSymbolMicro = FreeCAD.ParamGet(u"User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__).GetString(u"seT_User_UnitSymbolMicro")
+seT_User_UnitSymbolMicro = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__).GetString("seT_User_UnitSymbolMicro")
 if seT_User_UnitSymbolMicro == "":
-    seT_User_UnitSymbolMicro = "u"
+    seT_User_UnitSymbolMicro = ""
 FreeCAD_Paramter.SetString("seT_User_UnitSymbolMicro", seT_User_UnitSymbolMicro) # 
 ##
 #### pour demarrage
@@ -245,7 +258,7 @@ FreeCAD_Paramter.SetFloat("seT_System_uniteM", uniteM)
 ##
 uniteMs = FreeCAD_Paramter.GetString("seT_System_uniteMs")
 if uniteMs == "":
-    uniteMs= u"km"
+    uniteMs= "km"
 FreeCAD_Paramter.SetString("seT_System_uniteMs", uniteMs)
 ##
 uniteS = FreeCAD_Paramter.GetFloat("seT_System_uniteS")
@@ -255,7 +268,7 @@ FreeCAD_Paramter.SetFloat("seT_System_uniteS", uniteS)
 ##
 uniteSs = FreeCAD_Paramter.GetString("seT_System_uniteSs")
 if uniteSs == "":
-    uniteSs= u"km"+seT_User_UnitSymbolSquare
+    uniteSs= "km"+seT_User_UnitSymbolSquare
 FreeCAD_Paramter.SetString("seT_System_uniteSs", uniteSs)
 ##
 uniteV = FreeCAD_Paramter.GetFloat("seT_System_uniteV")
@@ -265,7 +278,7 @@ FreeCAD_Paramter.SetFloat("seT_System_uniteV", uniteV)
 ##
 uniteVs = FreeCAD_Paramter.GetString("seT_System_uniteVs")
 if uniteVs == "":
-    uniteVs= u"km"+seT_User_UnitSymbolCube
+    uniteVs= "km"+seT_User_UnitSymbolCube
 FreeCAD_Paramter.SetString("seT_System_uniteVs", uniteVs)
 #### Configuration end ################################################
 
@@ -367,7 +380,7 @@ def adjustedGlobalPlacement(obj, locVector):
         return objectGlobalPlacement.multiply(objectPlacement.inverse()).multiply(locPlacement)
     except Exception:
         locPlacement = App.Placement(App.Vector(0,0,0), App.Rotation(0,0,0), App.Vector(0,0,0))
-        #App.Console.PrintError(u"Error adjustedGlobalPlacement")
+        #App.Console.PrintError("Error adjustedGlobalPlacement")
         return locPlacement
 
 def getNormal(cb):
@@ -406,6 +419,7 @@ def Refresh_Preference():### Begin command Std_Refresh_Preference
         global switch_User_Display_NumberPointsMeshPoints
         global switch_User_Display_NumberEdgesMesh
         global switch_User_Display_RadiusObject
+        global switch_User_Display_RadiusSurface
         global switch_User_Display_BsplineObject
         global switch_User_Display_CentreObject
         global switch_User_Display_CentreBoundBoxObject
@@ -415,6 +429,8 @@ def Refresh_Preference():### Begin command Std_Refresh_Preference
         global switch_User_Display_AreaSubObject
         global switch_User_Display_Position
         global switch_User_Display_VolumeObject
+        global switch_User_Display_Position_2D_CAD
+        global switch_User_Display_Position_2D_BMP
         global seT_User_UnitSymbolSquare
         global seT_User_UnitSymbolCube
         global seT_User_UnitSymbolMicro
@@ -443,15 +459,15 @@ def Refresh_Preference():### Begin command Std_Refresh_Preference
             FreeCAD_Paramter.SetString("seT_User_StyleSheetColorToolBar", "0")
             seT_User_StyleSheetColorToolBar = "0"
         if seT_User_StyleSheetColorToolBar != "0":
-            toolbar1.setStyleSheet("background-color:" + seT_User_StyleSheetColorToolBar + ";") #F8E6E0
+            toolbar1.setStyleSheet("QToolBar {background-color:" + seT_User_StyleSheetColorToolBar + ";}") #F8E6E0
         else:
-            toolbar1.setStyleSheet("QPalette.Base")
+            toolbar1.setStyleSheet("QToolBar {QPalette.Base}")
 
         switch_User_Work_With_Preselection     = FreeCAD_Paramter.GetBool("switch_User_Work_With_Preselection")      # switch yes / no preselection
         if switch_User_Work_With_Preselection == 1:
             switch_User_Work_With_PreselectionAsterix= " *"
-            #toolbar1.setStyleSheet("QPalette.Base")
-            #toolbar1.setStyleSheet("color: black; background-color: #F8E6E0") # html code  #F8E6E0
+            #toolbar1.setStyleSheet("QToolBar {QPalette.Base}")
+            #toolbar1.setStyleSheet("QToolBar {color: black; background-color: #F8E6E0}") # html code  #F8E6E0
         else:
             switch_User_Work_With_PreselectionAsterix= ""
         #### color
@@ -485,6 +501,7 @@ def Refresh_Preference():### Begin command Std_Refresh_Preference
         switch_User_Display_NumberPointsMeshPoints= FreeCAD_Paramter.GetBool("switch_User_Display_NumberPointsMeshPoints")# switch yes / no Points Mesh
         switch_User_Display_NumberEdgesMesh      = FreeCAD_Paramter.GetBool("switch_User_Display_NumberEdgesMesh")     # switch yes / no Edge Mesh
         switch_User_Display_RadiusObject         = FreeCAD_Paramter.GetBool("switch_User_Display_RadiusObject")        # switch yes / no Radius
+        switch_User_Display_RadiusSurface        = FreeCAD_Paramter.GetBool("switch_User_Display_RadiusSurface")       # switch yes / no Radius
         switch_User_Display_BsplineObject        = FreeCAD_Paramter.GetBool("switch_User_Display_BsplineObject")       # switch yes / no Bspline
         switch_User_Display_CentreObject         = FreeCAD_Paramter.GetBool("switch_User_Display_CentreObject")        # switch yes / no Centre
         switch_User_Display_CentreBoundBoxObject = FreeCAD_Paramter.GetBool("switch_User_Display_CentreBoundBoxObject")# switch yes / no Centre BoundBox
@@ -494,10 +511,12 @@ def Refresh_Preference():### Begin command Std_Refresh_Preference
         switch_User_Display_AreaSubObject        = FreeCAD_Paramter.GetBool("switch_User_Display_AreaSubObject")       # switch yes / no Area SubObject
         switch_User_Display_Position             = FreeCAD_Paramter.GetBool("switch_User_Display_Position")            # switch yes / no Position
         switch_User_Display_VolumeObject         = FreeCAD_Paramter.GetBool("switch_User_Display_VolumeObject")        # switch yes / no Volume
+        switch_User_Display_Position_2D_CAD      = FreeCAD_Paramter.GetBool("switch_User_Display_Position_2D_CAD")     # switch yes / no Position 2D CAD Y left bottom
+        switch_User_Display_Position_2D_BMP      = FreeCAD_Paramter.GetBool("switch_User_Display_Position_2D_BMP")     # switch yes / no Position 2D BMP Reverse Y 0,0 left Top
         ##
-        seT_User_UnitSymbolSquare = FreeCAD_Paramter.GetString(u"seT_User_UnitSymbolSquare")
-        seT_User_UnitSymbolCube = FreeCAD_Paramter.GetString(u"seT_User_UnitSymbolCube")
-        seT_User_UnitSymbolMicro = FreeCAD_Paramter.GetString(u"seT_User_UnitSymbolMicro")
+        seT_User_UnitSymbolSquare = FreeCAD_Paramter.GetString("seT_User_UnitSymbolSquare")
+        seT_User_UnitSymbolCube = FreeCAD_Paramter.GetString("seT_User_UnitSymbolCube")
+        seT_User_UnitSymbolMicro = FreeCAD_Paramter.GetString("seT_User_UnitSymbolMicro")
         ##
         seT_System_IndexUnitLength = FreeCAD_Paramter.GetInt("seT_System_IndexUnitLength")   # 
         seT_System_IndexUnitText = FreeCAD_Paramter.GetString("seT_System_IndexUnitText" )   # seT_System_IndexUnitText
@@ -517,6 +536,7 @@ def activeInfo():
     global SubElementName
     global objectName
     global position
+    global pos2D
 
     global sel
     global selEx
@@ -538,6 +558,7 @@ def activeInfo():
     global switch_User_Display_NumberPointsMeshPoints
     global switch_User_Display_NumberEdgesMesh
     global switch_User_Display_RadiusObject
+    global switch_User_Display_RadiusSurface
     global switch_User_Display_BsplineObject
     global switch_User_Display_CentreObject
     global switch_User_Display_CentreBoundBoxObject
@@ -547,9 +568,10 @@ def activeInfo():
     global switch_User_Display_AreaSubObject
     global switch_User_Display_Position
     global switch_User_Display_VolumeObject
+    global switch_User_Display_Position_2D_CAD
+    global switch_User_Display_Position_2D_BMP
     global seT_User_StyleSheetColorToolBar
     global switch_User_Work_With_Preselection
-
     global uniteM
     global uniteMs
     global uniteS
@@ -566,16 +588,16 @@ def activeInfo():
         None
     else:
         try:
-            rayonObjet  = longueurObjet = sommeEdges = surfaceObj = surfaceFace = volumeObject = 0.0
+            rayonObjet  = rayonSurface = longueurObjet = sommeEdges = surfaceObj = surfaceFace = volumeObject = 0.0
             nombreFacesMesh = nombrePointsMesh = nombreArretesMesh = BsplineNombreDeNoeuds = indexSubObject = 0
 
             ## Asterix and Obelix
             objectNameAsterix = SubElementNameAsterix = typeObjectShapeTypeSTRAsterix = typeObjectTypeIdSTRAsterix = nombreFacesMeshSTRAsterix = nombrePointsMeshSTRAsterix = ""
-            nombreArretesMeshSTRAsterix = rayonObjetSTRAsterix = longueurSTRAsterix = sommeEdgesSTRAsterix = surfaceObjSTRAsterix = surfaceFaceSTRAsterix = ""
-            volumeObjectSTRAsterix = bsplineSTRAsterix = centreObjetSTRAsterix = centreBBSTRAsterix = positionSTRAsterix = ""
+            nombreArretesMeshSTRAsterix = rayonObjetSTRAsterix = rayonSurfaceSTRAsterix = longueurSTRAsterix = sommeEdgesSTRAsterix = surfaceObjSTRAsterix = surfaceFaceSTRAsterix = ""
+            volumeObjectSTRAsterix = bsplineSTRAsterix = centreObjetSTRAsterix = centreBBSTRAsterix = positionSTRAsterix = Position2DSTRAsterix = ""
             bsplineNoeudsSTR = bsplineRayonObjetAppSTR = bsplinePointsCoorSoSTR = bsplinePointsCoorShapeSTR = ""
 
-            rayonObjetSTR = diametreObjetSTR = longueurSTR = surfaceObjSTR = surfaceFaceSTR = volumeObjectSTR = bsplineSTR = centreObjetSTR = centreBBSTR = positionSTR = ""
+            rayonObjetSTR = diametreObjetSTR = rayonSurfaceSTR = diametreSurfaceSTR = longueurSTR = surfaceObjSTR = surfaceFaceSTR = volumeObjectSTR = bsplineSTR = centreObjetSTR = centreBBSTR = positionSTR = pos2DSTR = ""
             nombreFacesMeshSTR = nombrePointsMeshSTR = nombreArretesMeshSTR = typeObjectShapeTypeSTR = typeObjectTypeIdSTR = sketchObjectTypeSTR = centreObjet = ""
 
             BsplineArcsRadius    = []
@@ -621,7 +643,7 @@ def activeInfo():
                     None
                 else:
                     try:
-                        longueurSTR = rayonObjetSTR = diametreObjetSTR = CentreObjet = MajorRadiusObjet = MajorRadiusObjet = ""
+                        longueurSTR = rayonObjetSTR = diametreObjetSTR = rayonSurfaceSTR = diametreSurfaceSTR = CentreObjet = MajorRadiusObjet = MajorRadiusObjet = ""
 
                         nameSketch = sketch.Name
 
@@ -692,6 +714,14 @@ def activeInfo():
                                     lineEdit += rayonObjetSTR + diametreObjetSTR
                             except Exception: None
 
+                        if switch_User_Display_RadiusSurface == 1:             # rayon d'une surface
+                            try:
+                                if rayonSurface != 0.0:
+                                    rayonSurfaceSTR = ("(rS:" + str(round(rayonSurface * uniteM, seT_User_DecimalValue)) + " " + uniteMs + ") ")
+                                    diametreSurfaceSTR = (" [DS:" + str(round(rayonSurface * 2.0, seT_User_DecimalValue)) + " " + uniteMs + "] ")
+                                    lineEdit += rayonSurfaceSTR + diametreSurfaceSTR
+                            except Exception: None
+
                         if switch_User_Display_CentreObject == 1:              # centre cercle et autres
                             try:
                                 if CentreObjet != "":
@@ -708,7 +738,7 @@ def activeInfo():
                         #except Exception: None
 
                     except Exception:
-                        App.Console.PrintError(u"Error read Sketcher")
+                        App.Console.PrintError("Error read Sketcher")
             #### sketcher end  ####
 
             else:
@@ -796,7 +826,7 @@ def activeInfo():
                             lineEdit += " (Ne:" + nombreArretesMeshSTR + ") "
                     except Exception: None
 
-                if switch_User_Display_RadiusObject == 1:
+                if switch_User_Display_RadiusObject == 1:                # radius object
                     try:
                         rayonObjetSTRAsterix = " *"
                         rayonObjet    = selEx.Curve.Radius
@@ -805,7 +835,16 @@ def activeInfo():
                         lineEdit += rayonObjetSTR + diametreObjetSTR
                     except Exception: None
 
-                if switch_User_Display_LengthObject == 1:              # longueurObjet 
+                if switch_User_Display_RadiusSurface == 1:               # radius surface
+                    try:
+                        rayonSurfaceSTRAsterix = " *"
+                        rayonSurface =  selEx.Surface.Radius
+                        rayonSurfaceSTR = ("(rS:" + str(round(rayonSurface * uniteM, seT_User_DecimalValue)) + " " + uniteMs + ") ")
+                        diametreSurfaceSTR = (" [DS:" + str(round(rayonSurface * 2.0, seT_User_DecimalValue)) + " " + uniteMs + "] ")
+                        lineEdit += rayonSurfaceSTR + diametreSurfaceSTR
+                    except Exception: None
+
+                if switch_User_Display_LengthObject == 1:                # longueurObjet 
                     try:
                         longueurSTRAsterix = " *"
                         if hasattr(objs[0], "Mesh"):
@@ -834,7 +873,7 @@ def activeInfo():
                         sommeEdgesSTRAsterix = " *"
                         for j in sObj.Edges:
                             sommeEdges += j.Length
-                        sommeEdgesSTR = str(sommeEdges)
+                        sommeEdgesSTR = str(round(sommeEdges * uniteM, seT_User_DecimalValue)) + " " + uniteMs
                         lineEdit += " (Se:" + sommeEdgesSTR + ") "
                     except Exception: None
 
@@ -975,7 +1014,7 @@ def activeInfo():
                     except Exception: None
                 #### Shape Mesh Points End ####
 
-                if switch_User_Display_Position == 1:                      # position pour Normal
+                if switch_User_Display_Position == 1:                  # position pour Normal
                     try:
                         positionSTRAsterix = " *"
                         position0STR = position1STR = position2STR = ""
@@ -985,6 +1024,20 @@ def activeInfo():
                         positionSTR = " (Pos: X:" + position0STR + " Y:" + position1STR + " Z:" + position2STR + ") "
                         lineEdit += positionSTR
                     except Exception: None
+
+            if (switch_User_Display_Position_2D_CAD == 1) or (switch_User_Display_Position_2D_BMP == 1): # position pour 2D 
+                try:
+                    Position2DSTRAsterix =  " *"
+                    pos2D0STR = str(pos2D[0])
+                    pos2D1STR = str(pos2D[1])                             # CAD Y : Y0 = coin Inferieur Gauche
+                    try:
+                        if switch_User_Display_Position_2D_BMP == True:   # BMP Y : Y0 = coin Superieur Gauche
+                             pos2D1STR = str(Gui.activeDocument().activeView().getSize()[1] - pos2D[1] )  # reverse Y : Y0 = coin Superieur Gauche
+                    except Exception:
+                        None
+                    pos2DSTR = " (Pos: X2D:" + pos2D0STR + "px Y2D:" + pos2D1STR + "px) "
+                    lineEdit += pos2DSTR
+                except Exception: None
 
             seT_User_TextHeigthValue = FreeCAD_Paramter.GetInt("seT_User_TextHeigthValue")
             fontGlobal_08.setPixelSize(seT_User_TextHeigthValue)
@@ -1005,6 +1058,8 @@ def activeInfo():
                                         "*****" + "\n" +
                                         "Radius" + "\t\t\t" +          ":" + rayonObjetSTRAsterix + "\t" + "(r)" + "\t\t" + ":" + "\t" + str(round(rayonObjet * uniteM, seT_User_DecimalValue)) + " " + uniteMs + "\n" +
                                         "Diameter" + "\t\t" +          ":" + rayonObjetSTRAsterix + "\t" + "[D]" + "\t\t" + ":" + "\t" + str(round(rayonObjet * 2.0 * uniteM, seT_User_DecimalValue)) + " " + uniteMs + "\n" +
+                                        "RadiusSurface" + "\t\t" +     ":" + rayonSurfaceSTRAsterix + "\t" + "(rS)" + "\t\t" + ":" + "\t" + str(round(rayonSurface * uniteM, seT_User_DecimalValue)) + " " + uniteMs + "\n" +
+                                        "DiameterSurface" + "\t\t" +   ":" + rayonSurfaceSTRAsterix + "\t" + "[DS]" + "\t\t" + ":" + "\t" + str(round(rayonSurface * 2.0 * uniteM, seT_User_DecimalValue)) + " " + uniteMs + "\n" +
                                         "Length or Perimeter" + "\t" + ":" + longueurSTRAsterix + "\t" + "(L) or (P)" + "\t\t" + ":" + "\t" + str(round(longueurObjet * uniteM, seT_User_DecimalValue)) + " " + uniteMs + "\n" +
                                         "Somme Edges" + "\t\t" +       ":" + sommeEdgesSTRAsterix + "\t" + "(Se)" + "\t\t" + ":" + "\t" + str(round(sommeEdges * uniteM, seT_User_DecimalValue)) + " " + uniteMs + "\n" +
                                         "*****" + "\n" +
@@ -1025,6 +1080,8 @@ def activeInfo():
                                         "BoundBox center" + "\t\t" +   ":" + centreBBSTRAsterix + "\t" + "(BBCe)" + "\t\t" + ":" + "\t" + centreBBSTR + "\n" +
                                         "Mouse position" + "\t\t" +    ":" + positionSTRAsterix + "\t" + "(Pos)" + "\t\t" + ":" + "\t" + positionSTR + "\n" +
                                         "*****" + "\n" +
+                                        "Mouse position screen 2D" + "\t"+ ":" + Position2DSTRAsterix + "\t" + "(Pos: X2D)" + "\t" + ":" + "\t" + pos2DSTR + "\n" +
+                                        "*****" + "\n" +
                                         __title__ + "\t" + "Version : " + __version__ + "\t" + "Date : " + __date__ + "\n" +
                                         "*****" + "\n")
 
@@ -1033,16 +1090,16 @@ def activeInfo():
                                          " check your choice(s) to display and click the Refresh button, choice your Unit Enjoy.")
                 lineEdit_ToolBar.setToolTip("Go to [Tools Edit paramater : User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__ + "]" + "\n" +
                                          " check your choice(s) to display and click the Refresh button, choice your Unit Enjoy.")
-                lineEdit_ToolBar.setStyleSheet("color: black; background-color: red")
+                lineEdit_ToolBar.setStyleSheet("QLineEdit {color: black; background-color: red}")
             else:
-                lineEdit_ToolBar.setStyleSheet("color: QPalette.Base; background-color: QPalette.Base")
+                lineEdit_ToolBar.setStyleSheet("QLineEdit {color: QPalette.Base; background-color: QPalette.Base}")
             lineEdit_ToolBar.setCursorPosition(0)
         except Exception:
             lineEdit_ToolBar.setText("Error or Go to [Tools Edit paramater : User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__ + "]" + "\n" +
                                      " check your choice(s) to display and click the Refresh button, choice your Unit Enjoy.")
             lineEdit_ToolBar.setToolTip("Error or Go to [Tools Edit paramater : User parameter:BaseApp/Preferences/Macros/FCMmacros/" + __title__ + "]" + "\n" +
                                      " check your choice(s) to display and click the Refresh button, choice your Unit Enjoy.")
-            lineEdit_ToolBar.setStyleSheet("color: black; background-color: red")
+            lineEdit_ToolBar.setStyleSheet("QLineEdit {color: black; background-color: red}")
 #            lineEdit = "-"
 #            lineEdit_ToolBar.setText(lineEdit)
 
@@ -1061,55 +1118,55 @@ def SIGNAL_comboBox_Changed(text):
         global comboBox_ToolBar
         global FreeCAD_Paramter
 
-        if text == u"km":         #        = 1000000
+        if text == "km":         #        = 1000000
             uniteM = 0.000001
-            uniteMs= u"km"
+            uniteMs= "km"
             uniteS = 0.000000000001
-            uniteSs= u"km"+seT_User_UnitSymbolSquare
+            uniteSs= "km"+seT_User_UnitSymbolSquare
             uniteV = 0.000000000000000001
-            uniteVs= u"km"+seT_User_UnitSymbolCube
-        elif text == u"hm":       #        = 100000
+            uniteVs= "km"+seT_User_UnitSymbolCube
+        elif text == "hm":       #        = 100000
             uniteM = 0.00001
-            uniteMs= u"hm"
+            uniteMs= "hm"
             uniteS = 0.0000000001
-            uniteSs= u"hm"+seT_User_UnitSymbolSquare
+            uniteSs= "hm"+seT_User_UnitSymbolSquare
             uniteV = 0.000000000000001
-            uniteVs= u"hm"+seT_User_UnitSymbolCube
-        elif text == u"dam":      #        = 10000
+            uniteVs= "hm"+seT_User_UnitSymbolCube
+        elif text == "dam":      #        = 10000
             uniteM = 0.0001
-            uniteMs= u"dam"
+            uniteMs= "dam"
             uniteS = 0.00000001
-            uniteSs= u"dam"+seT_User_UnitSymbolSquare
+            uniteSs= "dam"+seT_User_UnitSymbolSquare
             uniteV = 0.000000000001
-            uniteVs= u"dam"+seT_User_UnitSymbolCube
-        elif text == u"m":        #        = 1000
+            uniteVs= "dam"+seT_User_UnitSymbolCube
+        elif text == "m":        #        = 1000
             uniteM = 0.001
-            uniteMs= u"m"
+            uniteMs= "m"
             uniteS = 0.000001
-            uniteSs= u"m"+seT_User_UnitSymbolSquare
+            uniteSs= "m"+seT_User_UnitSymbolSquare
             uniteV = 0.000000001
-            uniteVs= u"m"+seT_User_UnitSymbolCube
-        elif text == u"dm":       #        = 100
+            uniteVs= "m"+seT_User_UnitSymbolCube
+        elif text == "dm":       #        = 100
             uniteM = 0.01
-            uniteMs= u"dm"
+            uniteMs= "dm"
             uniteS = 0.0001
-            uniteSs= u"dm"+seT_User_UnitSymbolSquare
+            uniteSs= "dm"+seT_User_UnitSymbolSquare
             uniteV = 0.000001
-            uniteVs= u"dm"+seT_User_UnitSymbolCube
-        elif text == u"cm":       #        = 10
+            uniteVs= "dm"+seT_User_UnitSymbolCube
+        elif text == "cm":       #        = 10
             uniteM = 0.1
-            uniteMs= u"cm"
+            uniteMs= "cm"
             uniteS = 0.01
-            uniteSs= u"cm"+seT_User_UnitSymbolSquare
+            uniteSs= "cm"+seT_User_UnitSymbolSquare
             uniteV = 0.001
-            uniteVs= u"cm"+seT_User_UnitSymbolCube
-        elif text == u"mm":       #        = 1 ###############################
+            uniteVs= "cm"+seT_User_UnitSymbolCube
+        elif text == "mm":       #        = 1 ###############################
             uniteM = 1.0
-            uniteMs= u"mm"
+            uniteMs= "mm"
             uniteS = 1.0
-            uniteSs= u"mm"+seT_User_UnitSymbolSquare
+            uniteSs= "mm"+seT_User_UnitSymbolSquare
             uniteV = 1.0
-            uniteVs= u"mm"+seT_User_UnitSymbolCube
+            uniteVs= "mm"+seT_User_UnitSymbolCube
         elif text == seT_User_UnitSymbolMicro+"m":  # = 1000 #http://fr.wiktionary.org/wiki/%CE%BCm#conv
             uniteM = 1000.0
             uniteMs= seT_User_UnitSymbolMicro+"m"
@@ -1117,97 +1174,97 @@ def SIGNAL_comboBox_Changed(text):
             uniteSs= seT_User_UnitSymbolMicro+"m"+seT_User_UnitSymbolSquare
             uniteV = 1000.0**3
             uniteVs= seT_User_UnitSymbolMicro+"m"+seT_User_UnitSymbolCube
-        elif text == u"nm":       #        = 1000000
+        elif text == "nm":       #        = 1000000
             uniteM = 1000000.0
-            uniteMs= u"nm"
+            uniteMs= "nm"
             uniteS = 1000000.0**2
-            uniteSs= u"nm"+seT_User_UnitSymbolSquare
+            uniteSs= "nm"+seT_User_UnitSymbolSquare
             uniteV = 1000000.0**3
-            uniteVs= u"nm"+seT_User_UnitSymbolCube
-        elif text == u"pm":       #        = 1000000000
+            uniteVs= "nm"+seT_User_UnitSymbolCube
+        elif text == "pm":       #        = 1000000000
             uniteM = 1000000000.0
-            uniteMs= u"pm"
+            uniteMs= "pm"
             uniteS = 1000000000.0**2
-            uniteSs= u"pm"+seT_User_UnitSymbolSquare
+            uniteSs= "pm"+seT_User_UnitSymbolSquare
             uniteV = 1000000000.0**3
-            uniteVs= u"pm"+seT_User_UnitSymbolCube
-        elif text == u"fm":       #        = 1000000000000
+            uniteVs= "pm"+seT_User_UnitSymbolCube
+        elif text == "fm":       #        = 1000000000000
             uniteM = 1000000000000.0
-            uniteMs= u"fm"
+            uniteMs= "fm"
             uniteS = 1000000000000.0**2
-            uniteSs= u"fm"+seT_User_UnitSymbolSquare
+            uniteSs= "fm"+seT_User_UnitSymbolSquare
             uniteV = 1000000000000.0**3
-            uniteVs= u"fm"+seT_User_UnitSymbolCube
-        elif text == u"inch":     # inch   = 25.400
+            uniteVs= "fm"+seT_User_UnitSymbolCube
+        elif text == "inch":     # inch   = 25.400
             uniteM = 1.0/25.400
-            uniteMs= u"in"
+            uniteMs= "in"
             uniteS = uniteM**2
-            uniteSs= u"in"+seT_User_UnitSymbolSquare
+            uniteSs= "in"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"in"+seT_User_UnitSymbolCube
-        elif text == u"link":     # link   = 201.168
+            uniteVs= "in"+seT_User_UnitSymbolCube
+        elif text == "link":     # link   = 201.168
             uniteM = 1.0/201.168
-            uniteMs= u"lk"
+            uniteMs= "lk"
             uniteS = uniteM**2
-            uniteSs= u"lk"+seT_User_UnitSymbolSquare
+            uniteSs= "lk"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"lk"+seT_User_UnitSymbolCube
-        elif text == u"foot":     # foot   = 304.800
+            uniteVs= "lk"+seT_User_UnitSymbolCube
+        elif text == "foot":     # foot   = 304.800
             uniteM = 1.0/304.800
-            uniteMs= u"ft"
+            uniteMs= "ft"
             uniteS = uniteM**2
-            uniteSs= u"ft"+seT_User_UnitSymbolSquare
+            uniteSs= "ft"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"ft"+seT_User_UnitSymbolCube
-        elif text == u"yard":     # yard   = 914.400
+            uniteVs= "ft"+seT_User_UnitSymbolCube
+        elif text == "yard":     # yard   = 914.400
             uniteM = 1.0/914.400
-            uniteMs= u"yd"
+            uniteMs= "yd"
             uniteS = uniteM**2
-            uniteSs= u"yd"+seT_User_UnitSymbolSquare
+            uniteSs= "yd"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"yd"+seT_User_UnitSymbolCube
-        elif text == u"perch":    #rd # rod   perche    = 5029.200
+            uniteVs= "yd"+seT_User_UnitSymbolCube
+        elif text == "perch":    #rd # rod   perche    = 5029.200
             uniteM = 1.0/5029.200
-            uniteMs= u"rd"
+            uniteMs= "rd"
             uniteS = uniteM**2
-            uniteSs= u"rd"+seT_User_UnitSymbolSquare
+            uniteSs= "rd"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"rd"+seT_User_UnitSymbolCube
-        elif text == u"chain":    # chain  = 20116.800
+            uniteVs= "rd"+seT_User_UnitSymbolCube
+        elif text == "chain":    # chain  = 20116.800
             uniteM = 1.0/20116.800
-            uniteMs= u"ch"
+            uniteMs= "ch"
             uniteS = uniteM**2
-            uniteSs= u"ch"+seT_User_UnitSymbolSquare
+            uniteSs= "ch"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"ch"+seT_User_UnitSymbolCube
-        elif text == u"furlong":  # furlong= 201168
+            uniteVs= "ch"+seT_User_UnitSymbolCube
+        elif text == "furlong":  # furlong= 201168
             uniteM = 1.0/201168
-            uniteMs= u"fur"
+            uniteMs= "fur"
             uniteS = uniteM**2
-            uniteSs= u"fur"+seT_User_UnitSymbolSquare
+            uniteSs= "fur"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"fur"+seT_User_UnitSymbolCube
-        elif text == u"mile":     # mile   = 1609344
+            uniteVs= "fur"+seT_User_UnitSymbolCube
+        elif text == "mile":     # mile   = 1609344
             uniteM = 1.0/1609344
-            uniteMs= u"mi"
+            uniteMs= "mi"
             uniteS = uniteM**2
-            uniteSs= u"mi"+seT_User_UnitSymbolSquare
+            uniteSs= "mi"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"mi"+seT_User_UnitSymbolCube
-        elif text == u"league":   # league = 4828032
+            uniteVs= "mi"+seT_User_UnitSymbolCube
+        elif text == "league":   # league = 4828032
             uniteM = 1.0/4828032
-            uniteMs= u"lea"
+            uniteMs= "lea"
             uniteS = uniteM**2
-            uniteSs= u"lea"+seT_User_UnitSymbolSquare
+            uniteSs= "lea"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"lea"+seT_User_UnitSymbolCube
-        elif text == u"nautique": # nautique = 1852000
+            uniteVs= "lea"+seT_User_UnitSymbolCube
+        elif text == "nautique": # nautique = 1852000
             uniteM = 1.0/1852000
-            uniteMs= u"nmi"
+            uniteMs= "nmi"
             uniteS = uniteM**2
-            uniteSs= u"nmi"+seT_User_UnitSymbolSquare
+            uniteSs= "nmi"+seT_User_UnitSymbolSquare
             uniteV = uniteM**3
-            uniteVs= u"nmi"+seT_User_UnitSymbolCube
+            uniteVs= "nmi"+seT_User_UnitSymbolCube
 
         seT_System_IndexUnitLength = comboBox_ToolBar.currentIndex()
         seT_System_IndexUnitText = text
@@ -1223,6 +1280,62 @@ def SIGNAL_comboBox_Changed(text):
         FreeCAD_Paramter.SetInt("seT_System_IndexUnitLength", seT_System_IndexUnitLength)   # seT_System_IndexUnitLength
         FreeCAD_Paramter.SetString("seT_System_IndexUnitText", seT_System_IndexUnitText)    # seT_System_IndexUnitText
         activeInfo()
+
+##def displayDView():
+##    global toolbar1
+##    global lineEdit
+##    global lineEdit_ToolBar
+##    global switch_User_Display_ViewDirection
+##    global directionViewAsterix
+##    #global directionView
+##    global directionViewSTR
+##
+##    directionViewAsterix = "" 
+##    lineEdit_ToolBar.setStyleSheet("QLineEdit {QPalette.Base}")
+##
+##    if switch_User_Display_ViewDirection == 1:       # ViewDirection
+##        directionViewAsterix = " *"
+##        directionViewSTR = ""
+##        viewBase = FreeCADGui.ActiveDocument.ActiveView.viewPosition().Base
+##        vBx = str(round(viewBase.x, seT_User_DecimalValue))
+##        vBy = str(round(viewBase.y, seT_User_DecimalValue))
+##        vBz = str(round(viewBase.z, seT_User_DecimalValue))
+##
+##        viewRotation = FreeCADGui.ActiveDocument.ActiveView.viewPosition().Rotation.getYawPitchRoll()
+##        vRx = str(round(viewRotation[0], seT_User_DecimalValue))
+##        vRy = str(round(viewRotation[1], seT_User_DecimalValue))
+##        vRz = str(round(viewRotation[2], seT_User_DecimalValue))
+##
+##        vDBase = "Bx : " + vBx + ", By : " + vBy + ", Bz : " + vBz
+##        vDRota = "Yaw : " + vRx + ", Pitch : " + vRy + ", Roll : " + vRz
+##        directionViewSTR = "( " + vDBase + " ) ; ( " + vDRota + " )"
+##
+##        lineEdit = ""
+##        lineEdit = "(DView: " + directionViewSTR + ")"
+##        lineEdit_ToolBar.setText(lineEdit)
+
+##def decodePointColor2DView(x2DView = 0, y2DView = 0):
+##    # fonctionne mais empeche toute selection
+##    ##https://forum.freecad.org/viewtopic.php?p=696969#p696969
+##    view = Gui.ActiveDocument.ActiveView
+##    vp = view.getViewer().getSoRenderManager().getViewportRegion() # FC ver 0.22
+##    width = vp.getViewportSizePixels()[0]
+##    height = vp.getViewportSizePixels()[1]
+##    ####
+##    #view.saveImage("C:/Temp/test01.png", width, height, "Current")
+##    Gui.Selection.clearSelection()
+##    Gui.Selection.clearPreselection()
+##    viewGrab = Gui.ActiveDocument.ActiveView.getViewer()           # FC ver 0.22
+##    img = viewGrab.grabFramebuffer()
+##    #### Clipboard
+##    #data = PySide2.QtCore.QMimeData()
+##    #data.setImageData(img)
+##    #cb=QtGui.QClipboard()
+##    #cb.setMimeData(data, mode=PySide2.QtGui.QClipboard.Clipboard)
+##    #### Clipboard
+##    #### point color #######
+##    point = PySide2.QtGui.QPixmap(img)
+##    ptn2DView = point.toImage()
 
 #### section Observer begin ######################
 class SelObserver:                                  # selection Observer
@@ -1289,10 +1402,12 @@ FreeCADGui.Selection.addObserver(sTB)                    # install the function 
 #FreeCADGui.Selection.removeObserver(sTB)                 # desinstalle la fonction residente
 
 ####
+
 #https://forum.freecadweb.org/viewtopic.php?f=22&t=37030&start=20#p315576
 global cTB
 global oTB
-global vTB
+global vTB; vTB=Gui.activeDocument().activeView()
+
 class DocObserver:                      # document Observer
     def slotActivateDocument(self,doc):
         global cTB
@@ -1302,16 +1417,19 @@ class DocObserver:                      # document Observer
         try:
             vTB.removeEventCallback("SoEvent",cTB)                                            # close event observation
         except Exception: None
-        vTB=Gui.activeDocument().activeView()
-        oTB = ViewObserver(vTB)
-        cTB = vTB.addEventCallback("SoEvent",oTB.logPosition)
+        try: # ajout de ty ... except
+            vTB=Gui.activeDocument().activeView()
+            oTB = ViewObserver(vTB)
+            cTB = vTB.addEventCallback("SoEvent",oTB.logPosition)
+        except Exception: None
 
 obs=DocObserver()
 App.addDocumentObserver(obs)
-
+FreeCADGui.Selection.removeObserver(obs)                 # desinstalle la fonction residente
 ####
 vTB=Gui.activeDocument().activeView()
 class ViewObserver:                     # vue souris Observer
+
     def __init__(self, view):
         self.view = view
     def logPosition(self, info):
@@ -1319,20 +1437,21 @@ class ViewObserver:                     # vue souris Observer
         global oTB
         global vTB
         global position
-
+        global pos2D
         try:
             vTB=Gui.activeDocument().activeView()
             objectSurvol = vTB.getObjectInfo(vTB.getCursorPos())                               # here for objectSurvol preselected
             position = FreeCAD.Vector(float(objectSurvol["x"]),float(objectSurvol["y"]),float(objectSurvol["z"]))# vector on position mouse to objectSurvol
+            pos2D = info["Position"]  # 2D X,Y 
             activeInfo()
         except Exception:
-            #pos = info["Position"]                                                        # if mouse in 3D view
-            #position = self.view.getPoint(pos)                                            # vector detect on mouse position 3D view
+            #pos2D = info["Position"]                                                        # if mouse in 3D view
+            #position = self.view.getPoint(pos2D)                                            # vector detect on mouse position 3D view
             None
 oTB = ViewObserver(vTB)
 cTB = vTB.addEventCallback("SoEvent",oTB.logPosition)
-# vTB.removeEventCallback("SoEvent",cTB)                                            # close event observation
-#### section Observer end ######################
+#vTB.removeEventCallback("SoEvent",cTB)                                            # close event observation
+### section Observer end ######################
 
 #############################################################################
 ####
@@ -1372,15 +1491,15 @@ if switchtbar == 0:
         FreeCAD_Paramter.SetString("seT_User_StyleSheetColorToolBar", "0")
         seT_User_StyleSheetColorToolBar = "0"
     if seT_User_StyleSheetColorToolBar != "0":
-        toolbar1.setStyleSheet("background-color:" + seT_User_StyleSheetColorToolBar + ";") #F8E6E0
+        toolbar1.setStyleSheet("QToolBar {background-color:" + seT_User_StyleSheetColorToolBar + ";}") #F8E6E0
     else:
-        toolbar1.setStyleSheet("QPalette.Base")
+        toolbar1.setStyleSheet("QToolBar {QPalette.Base}")
 
 #    switch_User_Work_With_Preselection     = FreeCAD_Paramter.GetBool("switch_User_Work_With_Preselection")      # switch yes / no preselection
 #    if switch_User_Work_With_Preselection == 1:
 #        switch_User_Work_With_PreselectionAsterix= " *"
-#        toolbar1.setStyleSheet("QPalette.Base")
-#        toolbar1.setStyleSheet("color: black; background-color: #F8E6E0") # html code  #F8E6E0
+#        toolbar1.setStyleSheet("QToolBar {QPalette.Base}")
+#        toolbar1.setStyleSheet("QToolBar {color: black; background-color: #F8E6E0}") # html code  #F8E6E0
 #    else:
 #        switch_User_Work_With_PreselectionAsterix= ""
     #### color
@@ -1388,34 +1507,34 @@ if switchtbar == 0:
     toolbar1.addAction(QtGui.QIcon(QtGui.QPixmap(Refresh_Icon)), "Refresh after change in Preference"+"\n"+"and activate the modifications", Refresh_Preference)# icone, ToolTip, vers def:
 
     #fontGlobal_08 = QtGui.QFont()      # place plus haut
-    fontGlobal_08.setFamily(u"Arial")
+    fontGlobal_08.setFamily("Arial")
     #fontGlobal_08.setPointSize(seT_User_TextHeigthValue)
     fontGlobal_08.setPixelSize(seT_User_TextHeigthValue)
 
     comboBox_ToolBar = QtWidgets.QComboBox()
-    comboBox_ToolBar.addItem(u"km")
-    comboBox_ToolBar.addItem(u"hm")
-    comboBox_ToolBar.addItem(u"dam")
-    comboBox_ToolBar.addItem(u"m")
-    comboBox_ToolBar.addItem(u"dm")
-    comboBox_ToolBar.addItem(u"cm")
-    comboBox_ToolBar.addItem(u"mm")  # 1
-    comboBox_ToolBar.addItem(u"um")
-    comboBox_ToolBar.addItem(u"nm")
-    comboBox_ToolBar.addItem(u"pm")
-    comboBox_ToolBar.addItem(u"fm")
-    comboBox_ToolBar.addItem(u"inch")
-    comboBox_ToolBar.addItem(u"link")
-    comboBox_ToolBar.addItem(u"foot")
-    comboBox_ToolBar.addItem(u"yard")
-    comboBox_ToolBar.addItem(u"perch")
-    comboBox_ToolBar.addItem(u"chain")
-    comboBox_ToolBar.addItem(u"furlong")
-    comboBox_ToolBar.addItem(u"mile")
-    comboBox_ToolBar.addItem(u"league")
-    comboBox_ToolBar.addItem(u"nautique")
+    comboBox_ToolBar.addItem("km")
+    comboBox_ToolBar.addItem("hm")
+    comboBox_ToolBar.addItem("dam")
+    comboBox_ToolBar.addItem("m")
+    comboBox_ToolBar.addItem("dm")
+    comboBox_ToolBar.addItem("cm")
+    comboBox_ToolBar.addItem("mm")  # 1
+    comboBox_ToolBar.addItem("um")
+    comboBox_ToolBar.addItem("nm")
+    comboBox_ToolBar.addItem("pm")
+    comboBox_ToolBar.addItem("fm")
+    comboBox_ToolBar.addItem("inch")
+    comboBox_ToolBar.addItem("link")
+    comboBox_ToolBar.addItem("foot")
+    comboBox_ToolBar.addItem("yard")
+    comboBox_ToolBar.addItem("perch")
+    comboBox_ToolBar.addItem("chain")
+    comboBox_ToolBar.addItem("furlong")
+    comboBox_ToolBar.addItem("mile")
+    comboBox_ToolBar.addItem("league")
+    comboBox_ToolBar.addItem("nautique")
     comboBox_ToolBar.setCurrentIndex(seT_System_IndexUnitLength)
-    QtCore.QObject.connect(comboBox_ToolBar, QtCore.SIGNAL(u"currentIndexChanged(QString)"), SIGNAL_comboBox_Changed)
+    QtCore.QObject.connect(comboBox_ToolBar, QtCore.SIGNAL("currentIndexChanged(QString)"), SIGNAL_comboBox_Changed)
     ##comboBox_ToolBar.setItemIcon(0, QIcon('C:/Users/Mario/AppData/Roaming/FreeCAD/Macro/Qt.png'))
 
     toolbar1.addWidget(comboBox_ToolBar)
@@ -1425,132 +1544,146 @@ if switchtbar == 0:
     ####
 #except Exception:
 #    FreeCAD.Console.PrintError("Not activeView or ..." + "\n")
-##
-FreeCAD.Console.PrintMessage("\n"+"####Configure FCInfo_ToolBar Begin####################################################################" + "\n\n")
-FreeCAD.Console.PrintMessage("_____Help for configure FCInfo_ToolBar_____" + "\n\n")
-FreeCAD.Console.PrintMessage("Go to : Menu > Tools > Edit parameters ... :BaseApp/Preferences/Macros/FCMmacros/FCInfo_ToolBar" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_StyleSheetColorToolBar_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_StyleSheetColorToolBar) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_StyleSheetColorToolBar          # False (Default: system) 1 = the size icon user is availlable" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_ToolbarIconSize_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_ToolbarIconSize) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_ToolbarIconSize              # 0 = not setStyleSheet (Default)" + "\n")
-FreeCAD.Console.PrintMessage("                                         # color in HTML format ex: #F8E6E0" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_sizeIconX_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_sizeIconX) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_sizeIconX                       # size X of the icon (Default: system)" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_sizeIconY_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_sizeIconY) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_sizeIconY                       # size Y of the icon (Default system)" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_DecimalValue_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_DecimalValue) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_DecimalValue                    # number of decimal value (Default 2)" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_setFixed_Tool_Bar_Width_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_setFixed_Tool_Bar_Width) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_setFixed_Tool_Bar_Width         # Width of the ToolBar" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_setFixed_Tool_Bar_Height_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_setFixed_Tool_Bar_Height) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_setFixed_Tool_Bar_Height        # heigth of the ToolBar" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_TextHeigthValue_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_TextHeigthValue) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_TextHeigthValue                 # heigth of the text in the LineEdit" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Work_With_Preselection_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Work_With_Preselection) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Work_With_Preselection       # True  1 = ()  Work With the Preselectiond " + "\n")
-FreeCAD.Console.PrintMessage("                                         # with this option the selection ins not availlable !" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_objectName_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_objectName) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_objectName           # True  1 = ()  display the Object name selected " + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_SubElementName_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_SubElementName) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_SubElementName       # True  1 = ()  display the subElement name selected " + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_ShapeType_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_ShapeType) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_ShapeType            # True  1 = (TyS:)  display the Shape Type of the object" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_TypeId_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_TypeId) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_TypeId               # True  1 = (TyI:)  display the Shape TypeId of the object" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_RadiusObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_RadiusObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_RadiusObject         # True  1 = (r:) [D:] display the radius and the diameter (if circle detected) " + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_NumberFacesMesh_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_NumberFacesMesh) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_NumberFacesMesh      # True  1 = (Nf:) display the number of faces of the Mesh" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_NumberPointsMeshPoints_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_NumberPointsMeshPoints) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_NumberPointsMeshPoints# True  1 = (Np:) display the number of points of the Mesh or Points" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_NumberEdgesMesh_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_NumberEdgesMesh) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_NumberEdgesMesh      # True  1 = (Ne:) display the number of Edges of the Mesh" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_BsplineObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_BsplineObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_BsplineObject        # True  1 = (BSpline) display the number of node of the BSpline" + "\n")
-FreeCAD.Console.PrintMessage("                                                   = (BSrA) BSPline radius approximative first radius of the BSpline" + "\n")
-FreeCAD.Console.PrintMessage("                                                   = (BSS) BSPline Points Shape number points of the Bspline (case Shape)" + "\n")
-FreeCAD.Console.PrintMessage("                                                   = (BSc) BSPline Points Sub Object number points of sub object selected (case Edge)" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_CentreObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_CentreObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_CentreObject         # True  1 = (Ce:)display the center of circle (if detected), face, edge ..." + "\n")
-FreeCAD.Console.PrintMessage("                                                   = or BBoxCenter of face, edge ... Sub selection" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_CentreBoundBoxObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_CentreBoundBoxObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_CentreBoundBoxObject # True  1 = (BBCe:) display the center of BoundBox of the object " + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_LengthObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_LengthObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_LengthObject         # True  1 = (L:) display the Length of the wire, edge, line selected" + "\n")
-FreeCAD.Console.PrintMessage("                                         #           (P:) if one face is selected, the Perimeter of the face is displayed" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_SommeAllEdgesObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_SommeAllEdgesObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_SommeAllEdgesObject  # True  1 = (Se:) display the Total Length of the edges" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_AreaObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_AreaObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_AreaObject           # True  1 = (A:) display the Area of the object selected " + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_AreaSubObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_AreaSubObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_AreaSubObject        # True  1 = (Af:) display the Area of the face selected " + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_VolumeObject_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_VolumeObject) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_VolumeObject         # True  1 = (V:) display the Volume of the object selected" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____switch_User_Display_Position_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_Position) + "\n")
-FreeCAD.Console.PrintMessage("switch_User_Display_Position             # True  1 = (Pos:) display the coordinate of the click mouse " + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_UnitSymbolSquare_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_UnitSymbolSquare) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_UnitSymbolSquare                # give the Square character '2' by default" + "\n\n")
-##
-FreeCAD.Console.PrintMessage("_____seT_User_UnitSymbolCube_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_UnitSymbolCube) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_UnitSymbolCube                  # give the Cube character '3' by default" + "\n\n") 
-##
-FreeCAD.Console.PrintMessage("_____seT_User_UnitSymbolMicro_____ " + " ")
-FreeCAD.Console.PrintError("Actual " + str(seT_User_UnitSymbolMicro) + "\n")
-FreeCAD.Console.PrintMessage("seT_User_UnitSymbolMicro                 # give the Micro character 'u' by default" + "\n\n") 
-##
-FreeCAD.Console.PrintMessage("####Configure FCInfo_ToolBar End######################################################################" + "\n\n")
+
+if switch_User_NotInfoOnBeginning == True:
+    ##
+    FreeCAD.Console.PrintMessage("\n"+"####Configure FCInfo_ToolBar Begin####################################################################" + "\n\n")
+    FreeCAD.Console.PrintMessage("_____Help for configure FCInfo_ToolBar_____" + "\n\n")
+    FreeCAD.Console.PrintMessage("Go to : Menu > Tools > Edit parameters ... :BaseApp/Preferences/Macros/FCMmacros/FCInfo_ToolBar" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_StyleSheetColorToolBar_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_StyleSheetColorToolBar) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_StyleSheetColorToolBar          # False (Default: system) 1 = the size icon user is availlable" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_ToolbarIconSize_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_ToolbarIconSize) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_ToolbarIconSize              # 0 = not setStyleSheet (Default)" + "\n")
+    FreeCAD.Console.PrintMessage("                                         # color in HTML format ex: #F8E6E0" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_sizeIconX_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_sizeIconX) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_sizeIconX                       # size X of the icon (Default: system)" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_sizeIconY_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_sizeIconY) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_sizeIconY                       # size Y of the icon (Default system)" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_DecimalValue_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_DecimalValue) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_DecimalValue                    # number of decimal value (Default 2)" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_setFixed_Tool_Bar_Width_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_setFixed_Tool_Bar_Width) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_setFixed_Tool_Bar_Width         # Width of the ToolBar" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_setFixed_Tool_Bar_Height_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_setFixed_Tool_Bar_Height) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_setFixed_Tool_Bar_Height        # heigth of the ToolBar" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_TextHeigthValue_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_TextHeigthValue) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_TextHeigthValue                 # heigth of the text in the LineEdit" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Work_With_Preselection_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Work_With_Preselection) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Work_With_Preselection       # True  1 = ()  Work With the Preselectiond " + "\n")
+    FreeCAD.Console.PrintMessage("                                         # with this option the selection ins not availlable !" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_objectName_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_objectName) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_objectName           # True  1 = ()  display the Object name selected " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_SubElementName_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_SubElementName) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_SubElementName       # True  1 = ()  display the subElement name selected " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_ShapeType_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_ShapeType) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_ShapeType            # True  1 = (TyS:)  display the Shape Type of the object" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_TypeId_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_TypeId) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_TypeId               # True  1 = (TyI:)  display the Shape TypeId of the object" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_RadiusObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_RadiusObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_RadiusObject         # True  1 = (r:) [D:] display the radius and the diameter (if circle detected) " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_RadiusSurface_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_RadiusSurface) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_RadiusSurface        # True  1 = (rS:) [DS:] display the radius and the diameter of surface (if surface detected) " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_NumberFacesMesh_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_NumberFacesMesh) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_NumberFacesMesh      # True  1 = (Nf:) display the number of faces of the Mesh" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_NumberPointsMeshPoints_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_NumberPointsMeshPoints) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_NumberPointsMeshPoints# True  1 = (Np:) display the number of points of the Mesh or Points" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_NumberEdgesMesh_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_NumberEdgesMesh) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_NumberEdgesMesh      # True  1 = (Ne:) display the number of Edges of the Mesh" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_BsplineObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_BsplineObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_BsplineObject        # True  1 = (BSpline) display the number of node of the BSpline" + "\n")
+    FreeCAD.Console.PrintMessage("                                                   = (BSrA) BSPline radius approximative first radius of the BSpline" + "\n")
+    FreeCAD.Console.PrintMessage("                                                   = (BSS) BSPline Points Shape number points of the Bspline (case Shape)" + "\n")
+    FreeCAD.Console.PrintMessage("                                                   = (BSc) BSPline Points Sub Object number points of sub object selected (case Edge)" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_CentreObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_CentreObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_CentreObject         # True  1 = (Ce:)display the center of circle (if detected), face, edge ..." + "\n")
+    FreeCAD.Console.PrintMessage("                                                   = or BBoxCenter of face, edge ... Sub selection" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_CentreBoundBoxObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_CentreBoundBoxObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_CentreBoundBoxObject # True  1 = (BBCe:) display the center of BoundBox of the object " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_LengthObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_LengthObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_LengthObject         # True  1 = (L:) display the Length of the wire, edge, line selected" + "\n")
+    FreeCAD.Console.PrintMessage("                                         #           (P:) if one face is selected, the Perimeter of the face is displayed" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_SommeAllEdgesObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_SommeAllEdgesObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_SommeAllEdgesObject  # True  1 = (Se:) display the Total Length of the edges" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_AreaObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_AreaObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_AreaObject           # True  1 = (A:) display the Area of the object selected " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_AreaSubObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_AreaSubObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_AreaSubObject        # True  1 = (Af:) display the Area of the face selected " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_VolumeObject_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_VolumeObject) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_VolumeObject         # True  1 = (V:) display the Volume of the object selected" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_Position_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_Position) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_Position             # True  1 = (Pos:) display the coordinate of the click mouse " + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_Position_2D_CAD_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_Position_2D_CAD) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_Position_2D_CAD      # True  1 = (Pos: X2D:) display the position XY 2D 0,0 = corner Inferior left (CAD)" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____switch_User_Display_Position_2D_BMP_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(switch_User_Display_Position_2D_BMP) + "\n")
+    FreeCAD.Console.PrintMessage("switch_User_Display_Position_2D_BMP      # True  1 = (Pos: X2D:) display the position XY 2D 0,0 = corner Superior left (BitMap BMP)" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_UnitSymbolSquare_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_UnitSymbolSquare) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_UnitSymbolSquare                # give the Square character '2' by default" + "\n\n")
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_UnitSymbolCube_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_UnitSymbolCube) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_UnitSymbolCube                  # give the Cube character '3' by default" + "\n\n") 
+    ##
+    FreeCAD.Console.PrintMessage("_____seT_User_UnitSymbolMicro_____ " + " ")
+    FreeCAD.Console.PrintError("Actual " + str(seT_User_UnitSymbolMicro) + "\n")
+    FreeCAD.Console.PrintMessage("seT_User_UnitSymbolMicro                 # give the Micro character 'u' by default" + "\n\n") 
+    ##
+    FreeCAD.Console.PrintMessage("####Configure FCInfo_ToolBar End######################################################################" + "\n\n")
